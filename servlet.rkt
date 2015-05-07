@@ -22,7 +22,8 @@
       (p "Try it by appending \"/{your username}\" to the url.")
       (p "Check out the following configs:")
       (p (a ([href "/samertm"]) "Samer's config"))
-      (p (a ([href "/markmccaskey"]) "Mark's config"))))))
+      (p (a ([href "/markmccaskey"]) "Mark's config"))
+      (p (a ([href "https://github.com/samertm/emacsconfigs.rkt"]) "Check out the code on GitHub."))))))
 
 ;; url must be a single string (like "samertm").
 (define (serve-profile req url)
