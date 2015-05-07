@@ -7,7 +7,7 @@
   (let ([port 8080])
     (displayln (format "Running server on 0.0.0.0:~s" port))
     (serve/servlet start
-                   #:port 8080
+                   #:port port
                    #:servlet-regexp #rx""
                    #:command-line? #t)))
 (main)

@@ -1,7 +1,8 @@
 #lang web-server
 
 (require octokit
-         racket/system)
+         racket/system
+         net/base64)
 
 (provide interface-version stuffer start)
 (define interface-version 'stateless)
@@ -30,53 +31,71 @@
 ;; url must be a single string (like "samertm").
 (define (serve-profile req url)
   (with-handlers ([exn:fail? (lambda (v)
-                               (displayln v)
+                               (displayln (format "On url ~a:\n~a" url v))
                                (response/xexpr
                                 `(html
                                   (body
                                    (p "Could not get Emacs config for " ,url)))))])
     (define repos (send gh user-repos url))
-    (define emacs-repos (filter (lambda (r)
-                                  (define n (hash-ref r 'name))
-                                  (unless (ormap (lambda (x) (equal? n x))
-                                                 '(".emacs.d" "dotemacsd" "dot-emacs" "dotfiles"))
-                                    #f))
-                                repos))
+    (define emacs-repos
+      (filter (lambda (r)
+                (define n (hash-ref r 'name))
+                (unless (ormap (lambda (x) (equal? n x))
+                               '(".emacs.d" "dotemacsd" "dot-emacs" "dotfiles"))
+                  #f))
+              repos))
     ;; (cons repo-url init-text)
-    (define emacs-init-repo-pair (ormap (lambda (r)
-                                          (let ([i (get-emacs-config-string
-                                                    (hash-ref r 'clone_url))])
-                                            (if (not (equal? i ""))
-                                                (cons (hash-ref r 'html_url) i)
-                                                #f)))
-                                        emacs-repos))
+    (define emacs-init-repo-pair
+      (ormap (lambda (r)
+               (let ([i (get-emacs-config
+                         (hash-ref (hash-ref r 'owner) 'login)
+                         (hash-ref r 'name))])
+                 (if (not (equal? i ""))
+                     (cons (hash-ref r 'html_url) i)
+                     #f)))
+             emacs-repos))
     (response/xexpr
      `(html (body (p "Emacs config for " (a ([href ,(string-append "https://github.com/" url)]) , url))
                   (p (a ([href ,(car emacs-init-repo-pair)]) "View on GitHub."))
                   (pre ,(cdr emacs-init-repo-pair)))))))
 
-(define (get-emacs-config-string cloneURL)
-  (displayln cloneURL)
-  (let* ([url (string->url cloneURL)]
-         [dir (apply build-path
-                     (find-system-path 'temp-dir)
-                     (url-host url)
-                     (map path/param-path (url-path url)))])
-    (when (not (directory-exists? dir))
-      ;; init git dir
-      ;; what does `parameterize' do?
-      (make-directory* dir)
-      (parameterize ([current-directory dir])
-        (system "git init")
-        ;; security?
-        (system (string-append "git remote add origin " cloneURL))))
-    (parameterize ([current-directory dir])
-      (system "git pull origin master") ;; use real remote branch?
-      (define init-file (ormap (lambda (f)
-                                 (define full (build-path dir f))
-                                 (if (file-exists? full)
-                                     full
-                                     #f))
-                               '("init.el" ".emacs"
-                                 ".emacs.d/init.el" "spacemacs/.spacemacs")))
-      (port->string (open-input-file init-file)))))
+
+(define (get-emacs-config login repo)
+  (define (get-contents-file path)
+    (define contents (send gh get-contents login repo path))
+    (if (not (equal? (hash-ref contents 'type #f) "file"))
+        #f
+        ;; Unhash contents.
+        (bytes->string/utf-8
+         (base64-decode
+          (string->bytes/utf-8 (hash-ref contents 'content))))))
+  (ormap
+   get-contents-file
+   '("init.el" ".emacs" ".emacs.d/init.el" "spacemacs/.spacemacs")))
+
+;; Vestigial limb from when I was cloning repos.
+;; (define (get-emacs-config clone-url)
+;;   (displayln clone-url)
+;;   (let* ([url (string->url clone-url)]
+;;          [dir (apply build-path
+;;                      (find-system-path 'temp-dir)
+;;                      (url-host url)
+;;                      (map path/param-path (url-path url)))])
+;;     (when (not (directory-exists? dir))
+;;       ;; init git dir
+;;       ;; what does `parameterize' do?
+;;       (make-directory* dir)
+;;       (parameterize ([current-directory dir])
+;;         (system "git init")
+;;         ;; security?
+;;         (system (string-append "git remote add origin " clone-url))))
+;;     (parameterize ([current-directory dir])
+;;       (system "git pull origin master") ;; use real remote branch?
+;;       (define init-file (ormap (lambda (f)
+;;                                  (define full (build-path dir f))
+;;                                  (if (file-exists? full)
+;;                                      full
+;;                                      #f))
+;;                                '("init.el" ".emacs"
+;;                                  ".emacs.d/init.el" "spacemacs/.spacemacs")))
+;;       (port->string (open-input-file init-file)))))
