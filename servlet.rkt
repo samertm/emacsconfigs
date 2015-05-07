@@ -74,6 +74,7 @@
                                  (if (file-exists? full)
                                      full
                                      #f))
-                               '("init.el" ".emacs")))
+                               '("init.el" ".emacs"
+                                 ".emacs.d/init.el" "spacemacs/.spacemacs")))
       (port->string (open-input-file init-file)))))
 
