@@ -6,6 +6,8 @@
 (provide interface-version stuffer start)
 (define interface-version 'stateless)
 
+(define gh (new octokit%))
+
 (define (start req)
   (site-router req))
 
@@ -33,7 +35,7 @@
                                 `(html
                                   (body
                                    (p "Could not get Emacs config for " ,url)))))])
-    (define repos (send c user-repos url))
+    (define repos (send gh user-repos url))
     (define emacs-repos (filter (lambda (r)
                                   (define n (hash-ref r 'name))
                                   (unless (ormap (lambda (x) (equal? n x))
@@ -78,4 +80,3 @@
                                '("init.el" ".emacs"
                                  ".emacs.d/init.el" "spacemacs/.spacemacs")))
       (port->string (open-input-file init-file)))))
-
