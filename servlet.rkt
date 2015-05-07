@@ -40,20 +40,18 @@
                                                  '(".emacs.d" "dotemacsd" "dot-emacs" "dotfiles"))
                                     #f))
                                 repos))
-    ;; (repo-url . init-text)
+    ;; (cons repo-url init-text)
     (define emacs-init-repo-pair (ormap (lambda (r)
                                           (let ([i (get-emacs-config-string
                                                     (hash-ref r 'clone_url))])
                                             (if (not (equal? i ""))
-                                                (list (hash-ref r 'html_url) i)
+                                                (cons (hash-ref r 'html_url) i)
                                                 #f)))
                                         emacs-repos))
     (response/xexpr
      `(html (body (p "Emacs config for " (a ([href ,(string-append "https://github.com/" url)]) , url))
                   (p (a ([href ,(car emacs-init-repo-pair)]) "View on GitHub."))
-                  (pre ,(cadr emacs-init-repo-pair)))))))
-
-(define c (new octokit%))
+                  (pre ,(cdr emacs-init-repo-pair)))))))
 
 (define (get-emacs-config-string cloneURL)
   (displayln cloneURL)
