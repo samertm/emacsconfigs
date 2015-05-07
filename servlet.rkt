@@ -32,7 +32,7 @@
                                (response/xexpr
                                 `(html
                                   (body
-                                   (p "Could not get Emacs config for: " ,url)))))])
+                                   (p "Could not get Emacs config for " ,url)))))])
     (define repos (send c user-repos url))
     (define emacs-repos (filter (lambda (r)
                                   (define n (hash-ref r 'name))
@@ -40,16 +40,18 @@
                                                  '(".emacs.d" "dotemacsd" "dot-emacs" "dotfiles"))
                                     #f))
                                 repos))
-    (define emacs-init (ormap (lambda (r)
-                                (let ([i (get-emacs-config-string
-                                          (hash-ref r 'clone_url))])
-                                  (if (not (equal? i ""))
-                                      i
-                                      #f)))
-                              emacs-repos))
+    ;; (repo-url . init-text)
+    (define emacs-init-repo-pair (ormap (lambda (r)
+                                          (let ([i (get-emacs-config-string
+                                                    (hash-ref r 'clone_url))])
+                                            (if (not (equal? i ""))
+                                                (list (hash-ref r 'html_url) i)
+                                                #f)))
+                                        emacs-repos))
     (response/xexpr
-     `(html (body (p "Emacs config for: " ,url)
-                  (pre ,emacs-init))))))
+     `(html (body (p "Emacs config for " (a ([href ,(string-append "https://github.com/" url)]) , url))
+                  (p (a ([href ,(car emacs-init-repo-pair)]) "View on GitHub."))
+                  (pre ,(cadr emacs-init-repo-pair)))))))
 
 (define c (new octokit%))
 
