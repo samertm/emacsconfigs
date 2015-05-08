@@ -1,6 +1,6 @@
 
 ## Dependencies
- - github.com/tonyg/octokit.rkt ("raco pkg install --link -n octokit octokit.rkt")
+ - github.com/samertm/octokit.rkt ("raco pkg install --link -n octokit octokit.rkt")
 
 
 ## Set up sqlite3
