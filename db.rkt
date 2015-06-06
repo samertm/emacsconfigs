@@ -4,12 +4,17 @@
 
 (provide db-conn db-reset)
 
+(define db-name "emacsconfigs.sqlite3")
+
 (define db-conn
   (virtual-connection
    (connection-pool
-    (lambda () (sqlite3-connect	#:database "emacsconfigs.sqlite3")))))
+    (lambda () (sqlite3-connect	#:database db-name)))))
 
 (define (db-reset)
+  (when (not (file-exists? db-name))
+    ;; Create db.
+    (system (string-append "sqlite3 -cmd '.save " db-name "'")))
   (for ([q '("DROP TABLE IF EXISTS repo"
              "CREATE TABLE repo (
 id         INTEGER PRIMARY KEY,
