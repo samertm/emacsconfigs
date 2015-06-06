@@ -4,7 +4,7 @@
          web-server/servlet-env)
 
 (define (main)
-  (let ([port 8080])
+  (let ([port 8888])
     (displayln (format "Running server on 0.0.0.0:~s" port))
     (serve/servlet start
                    #:port port
