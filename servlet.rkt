@@ -11,6 +11,7 @@
 
 (define gh (new octokit%))
 
+;; TODO: Initialize db.
 (define (start req)
   (site-router req))
 
