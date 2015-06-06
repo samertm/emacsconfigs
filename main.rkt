@@ -22,5 +22,6 @@
               #:args (cmd)
               (case cmd
                 [("serve") (serve)]
-                [("db-reset") (db-reset)]))
+                [("db-reset") (db-reset)]
+                [else (printf "~s is not a command.\n" cmd)]))
 
