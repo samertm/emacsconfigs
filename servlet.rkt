@@ -130,22 +130,24 @@ VALUES (?, ?, ?, ?, ?)"
    get-nonempty-content
    '("init.el" ".emacs" ".emacs.d/init.el" "spacemacs/.spacemacs")))
 
-
 ;; url must be a single string (like "samertm").
 (define (serve-profile req url)
-  ;; (with-handlers ([exn:fail? (lambda (v)
-  ;;                              (displayln (format "On url ~a:\n~a" url v))
-  ;;                              (response/xexpr
-  ;;                               `(html
-  ;;                                 (body
-  ;;                                  (p "Could not get Emacs config for " ,url)))))])
+  (with-handlers
+    ([exn:fail?
+      (lambda (v)
+        (displayln (format "On url ~a:\n~a" url v))
+        (response/xexpr
+         `(html
+           (body
+            (p "Could not get Emacs config for " ,url)))))])
+
     (match-define (cons repo files) (process-github-data url))
     (response/xexpr
      `(html (body (p "Emacs config for " (a ([href ,(string-append "https://github.com/" url)]) , url))
                   (p (a ([href ,(repo-html-url repo)]) "View on GitHub."))
                   ,@(map (lambda (f)
-                          `(pre ,(file-content f)))
-                        files)))))
+                           `(pre ,(file-content f)))
+                         files))))))
 
 ;; Vestigial limb from when I was cloning repos.
 ;; (define (get-emacs-config clone-url)
