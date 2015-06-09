@@ -88,6 +88,7 @@ VALUES (?, ?, ?, ?, ?)"
 
 ;; sync to database & return repo and file.
 ;; return (cons repo files)
+;; TODO: Handle contract violations (message . "Not Found").
 (define (process-github-data url)
   ;; If any of the repos are in our db, we assume it's "correct" and
   ;; that we've processed it.
