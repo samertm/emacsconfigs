@@ -139,16 +139,13 @@ VALUES (?, ?, ?, ?, ?)"
   ;;                               `(html
   ;;                                 (body
   ;;                                  (p "Could not get Emacs config for " ,url)))))])
-    (define repo-files-pair (process-github-data url))
-    (define repo (car repo-files-pair))
-    (define files (cdr repo-files-pair))
+    (match-define (cons repo files) (process-github-data url))
     (response/xexpr
      `(html (body (p "Emacs config for " (a ([href ,(string-append "https://github.com/" url)]) , url))
                   (p (a ([href ,(repo-html-url repo)]) "View on GitHub."))
                   ,@(map (lambda (f)
                           `(pre ,(file-content f)))
                         files)))))
-
 
 ;; Vestigial limb from when I was cloning repos.
 ;; (define (get-emacs-config clone-url)
