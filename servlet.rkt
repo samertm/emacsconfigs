@@ -2,6 +2,7 @@
 
 (require octokit
          racket/system
+;;         web-server/
          net/base64
          "db.rkt"
          db)
@@ -17,7 +18,14 @@
 (define-values (site-router site-url)
   (dispatch-rules
    [("") serve-home]
+;;   [("/favicon.ico") serve-favicon]
    [((string-arg)) serve-profile]))
+
+;; (define (serve-favicon req)
+;;   (files:make
+;;    #:url->path (fsmap:make-url->path "/favicon.ico")))
+
+;; (static-files-path "/favicon.ico"))
 
 (define (serve-home req)
   (response/xexpr
@@ -87,7 +95,7 @@ VALUES (?, ?, ?, ?, ?)"
        rows))
 
 ;; sync to database & return repo and file.
-;; return (cons repo files)
+;; return (cons repo files) or nil.
 ;; TODO: Handle contract violations (message . "Not Found").
 (define (process-github-data url)
   ;; If any of the repos are in our db, we assume it's "correct" and
@@ -96,29 +104,29 @@ VALUES (?, ?, ?, ?, ?)"
   (if (not (equal? stored-repo #f))
       (cons stored-repo (get-files-from-db db-conn (repo-id stored-repo)))
       ;; Get the info & save it to the db.
-      (let* ([repos (send gh user-repos url)]
-             [emacs-repos
-              (filter (lambda (r)
-                        (define n (hash-ref r 'name))
-                        (unless (ormap (lambda (x) (equal? n x))
-                                       '(".emacs.d" "dotemacsd" "dot-emacs" "dotfiles"))
-                          #f))
-                      repos)]
-             ;; (cons gh-repo gh-content)
-             [emacs-repo-content-pair
-              (ormap (lambda (r)
-                       (let ([i (select-contents
-                                 (hash-ref (hash-ref r 'owner) 'login)
-                                 (hash-ref r 'name))])
-                         (if (not (equal? i ""))
-                             (cons r i)
-                             #f)))
-                     emacs-repos)])
-        (sync-to-db db-conn
-                    (car emacs-repo-content-pair)
-                    (cdr emacs-repo-content-pair))
-        (define stored-repo (get-repo-from-db db-conn url))
-        (cons stored-repo (get-files-from-db db-conn (repo-id stored-repo))))))
+      (let ([repos (send gh user-repos url)])
+        (if (equal? (hash-ref repos 'message "") "Not Found")
+            #f
+            (let ([emacs-repos
+                   (filter (lambda (r)
+                             (define n (hash-ref r 'name))
+                             (unless (ormap (lambda (x) (equal? n x))
+                                            '(".emacs.d" "dotemacsd" "dot-emacs" "dotfiles"))
+                               #f))
+                           repos)])
+              ;; (cons gh-repo gh-content)
+              (match-define gh-repo gh-content
+                (ormap (lambda (r)
+                         (let ([i (select-contents
+                                   (hash-ref (hash-ref r 'owner) 'login)
+                                   (hash-ref r 'name))])
+                           (if (not (equal? i ""))
+                               (cons r i)
+                               #f)))
+                       emacs-repos))
+              (sync-to-db db-conn gh-repo gh-content)
+              (define stored-repo (get-repo-from-db db-conn url))
+              (cons stored-repo (get-files-from-db db-conn (repo-id stored-repo))))))))
 
 
 (define (select-contents login repo)
