@@ -115,7 +115,7 @@ VALUES (?, ?, ?, ?, ?)"
                                #f))
                            repos)])
               ;; (cons gh-repo gh-content)
-              (match-define gh-repo gh-content
+              (match-define (cons gh-repo gh-content)
                 (ormap (lambda (r)
                          (let ([i (select-contents
                                    (hash-ref (hash-ref r 'owner) 'login)
