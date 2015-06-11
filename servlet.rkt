@@ -150,13 +150,17 @@ VALUES (?, ?, ?, ?, ?)"
            (body
             (p "Could not get Emacs config for " ,url)))))])
 
-    (match-define (cons repo files) (process-github-data url))
-    (response/xexpr
-     `(html (body (p "Emacs config for " (a ([href ,(string-append "https://github.com/" url)]) , url))
-                  (p (a ([href ,(repo-html-url repo)]) "View on GitHub."))
-                  ,@(map (lambda (f)
-                           `(pre ,(file-content f)))
-                         files))))))
+    (let ([data (process-github-data url)])
+      (if (not data)
+          (response/xexpr
+           `(html (body (p ,(format "No Emacs config found for ~a." url)))))
+          (match-let ([(cons repo files) data])
+            (response/xexpr
+             `(html (body (p "Emacs config for " (a ([href ,(string-append "https://github.com/" url)]) , url))
+                          (p (a ([href ,(repo-html-url repo)]) "View on GitHub."))
+                          ,@(map (lambda (f)
+                                   `(pre ,(file-content f)))
+                                 files)))))))))
 
 ;; Vestigial limb from when I was cloning repos.
 ;; (define (get-emacs-config clone-url)
